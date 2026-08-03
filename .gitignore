@@ -36,6 +36,7 @@ install_manifest.txt
 
 # build directory & data directory
 build/
+__pycache__
 
 # VM stuff
 .vagrant/

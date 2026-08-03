@@ -1,0 +1,28 @@
+# HTCondor submit file for CERN LXPLUS
+# Job: SHiP_Calo_test
+
+universe   = vanilla
+executable = run_job_Cracks.sh
+arguments  = $(Process)
+
+# Resource requirements
+request_cpus   = 1
+request_memory = 16GB
+request_disk   = 50GB
+
+
+log    = logs/calo_production.$(Cluster).$(Process).log
+output = logs/calo_production.$(Cluster).$(Process).out
+error  = logs/calo_production.$(Cluster).$(Process).err
+
+# Job duration - automatically set based on runtime_hours=5h
++MaxRuntime             = 18000
++JobFlavour             = "workday"
+
+
+# Notify user on completion (optional)
+# notification            = Complete
+# notify_user             = elwright@cern.ch
+
+queue 16
+

@@ -56,13 +56,19 @@ class SimFileReader:
 
             acceptance_energy = np.sum(last_layer_edeps)/np.sum(first_layer_edeps)
 
+            # Checking that the sum of the energy histogram equals the input energy
+            integrated_energy = np.sum(edeps)
+            print(f"Integrated energy = {integrated_energy:.2f}")
+
             # All layers energy histogram
             with plt.style.context(['science', 'no-latex']):
                 plt.rcParams['figure.dpi'] = 200
                 plt.hist(ak.to_numpy(ak.flatten(edeps)), bins = 100)
+                plt.vlines(x=105.658, ymin=0, ymax=2*10**5, colors='red', linestyles='--', label='$\mu^{-}$ mass')
                 plt.xlabel("Energy [MeV]")
                 plt.ylabel("Counts")
                 plt.yscale("log")
+                plt.legend()
                 #plt.savefig(os.path.join(plotting_directory, "SplitCalGap_first_layer_energy.png"))
                 plt.show()
             
