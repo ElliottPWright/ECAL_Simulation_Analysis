@@ -2,6 +2,8 @@
 
 Welcome aboard, Mainz SHiP sailors, to the simulation analysis deck. Here you can find analysis classes, methods, and executables for simulation files from [GeoModelSplitCal](https://github.com/ElliottPWright/GeoModelSplitCal/tree/main). In GeoModelSplitCal_Extraction_Classes.py you can find the classes and methods, while in GeoModelSplitCal_Extraction.ipynb is an example executable for testing.
 
+You can find information on condor job flavours here: [Condor Job Flavour](https://batchdocs.web.cern.ch/local/submit.html)
+
 # Current Tasks
 
 - Set up a elegant data framework for the sim data:
