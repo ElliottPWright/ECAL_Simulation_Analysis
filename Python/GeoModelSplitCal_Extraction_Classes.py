@@ -57,8 +57,14 @@ class SimFileReader:
             acceptance_energy = np.sum(last_layer_edeps)/np.sum(first_layer_edeps)
 
             # Checking that the sum of the energy histogram equals the input energy
-            integrated_energy = np.sum(edeps)
-            print(f"Integrated energy = {integrated_energy:.2f}")
+            integrated_energy = np.array([np.sum(edeps[i]) for i in range(len(edeps))])
+            integrated_energy_fraction = integrated_energy/10**4
+            
+            # print(f"Integrated energy = {integrated_energy:.2f}")
+            # print(f"Fraction of original energy = {integrated_energy_fraction:.2f}")
+
+            print(f"Integrated energy = {integrated_energy}")
+            print(f"Fraction of original energy = {integrated_energy_fraction}")
 
             # All layers energy histogram
             with plt.style.context(['science', 'no-latex']):
