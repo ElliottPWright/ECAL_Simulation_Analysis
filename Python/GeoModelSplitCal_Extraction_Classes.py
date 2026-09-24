@@ -7,6 +7,22 @@ from typing import Dict, List, Optional
 import matplotlib.pyplot as plt
 import scienceplots
 
+
+# Not sure about this: just trying to make figures look more like ROOT
+plt.rcParams.update({
+    "figure.facecolor": "white",
+    "axes.facecolor": "white",
+    "axes.grid": False,
+    "axes.spines.top": True,
+    "axes.spines.right": True,
+    "axes.linewidth": 1.0,
+    "xtick.direction": "in",
+    "ytick.direction": "in",
+    "xtick.top": True,
+    "ytick.right": True,
+    "font.family": "sans-serif",
+})
+
 class SimFileReader:
     "This class opens and reads a simulation ROOT file."
 
@@ -150,6 +166,10 @@ class ProcessHits(SimFileReader):
 
         self.acceptance_energy = np.sum(self.last_layer_x_hits)/np.sum(self.first_layer_x_hits)
         self.acceptance_number = len(self.last_layer_x_hits)/len(self.first_layer_x_hits)
+
+
+    def MIP_Calibration():
+         
 
 
     
