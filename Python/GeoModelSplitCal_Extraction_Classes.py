@@ -617,7 +617,7 @@ class ECAL_Resolution(MIP_Calibration):
         m.limits["sigma"] = (1e-6, None)
         m.limits["mean"] = (xmin, xmax)
 
-        print("Running iminuit Gaussian minimization...")
+        print("Running iminuit Gaussian minimisation...")
 
         m.migrad()
         m.hesse()
@@ -709,7 +709,18 @@ class ECAL_Resolution(MIP_Calibration):
             }
 
     
-    def perform_fit(self, beam_energy):
+    def perform_fit(self, beam_energy, plotting_directory):
+        """
+        Performs the energy resolution fit.
+
+        Parameters:
+            beam_energy (array-like): energy of the particles.
+            plotting_directory (str): directory for plots.
+
+        Returns:
+            Plot of fractional energy resolution vs. beam energy
+        """
+        
         results = []
         
         for i in range(len(self.edep_sum_array)):
@@ -787,13 +798,13 @@ class ECAL_Resolution(MIP_Calibration):
         frac_resolutions = output["resolution"]
 
 
-        popt, pcov = curve_fit(fractional_energy_resolution_fit, energies, frac_resolutions)
+        popt, pcov = curve_fit(fractional_energy_resolution_fit, beam_energy, frac_resolutions)
         a, c = popt
         unc_params = np.sqrt(np.diag(pcov))
 
         fitted_energies = np.linspace(10**3, 10**5, num=10**3)
         fitted_frac_resolutions = fractional_energy_resolution_fit(fitted_energies, a, c)
-        frac_error = resolution_fit_error(energies, a, c, pcov)
+        frac_error = resolution_fit_error(beam_energy, a, c, pcov)
 
         legend_text = (
             r"$\frac{\sigma_E}{E} = \sqrt{\frac{a^2}{E} + c^2}$" "\n"
@@ -803,11 +814,11 @@ class ECAL_Resolution(MIP_Calibration):
 
         with plt.style.context(['science', 'no-latex']):
             plt.rcParams['figure.dpi'] = 200
-            plt.errorbar(energies/10**3,frac_resolutions, yerr=frac_error, fmt='.', color='red', ecolor='black')
+            plt.errorbar(beam_energy/10**3,frac_resolutions, yerr=frac_error, fmt='.', color='red', ecolor='black')
             plt.plot(fitted_energies/10**3, fitted_frac_resolutions, color='blue')
             plt.xlabel("E [GeV]")
             plt.ylabel(r"$\frac{\sigma_E}{E}$")
             plt.legend([legend_text], loc="best", prop={"family": "serif", "size": 11})
             #plt.yscale("log")
-            #plt.savefig(os.path.join(plotting_directory, "SplitCalGap_first_layer_energy.png"))
+            plt.savefig(os.path.join(plotting_directory, "SplitCalGap_first_layer_energy.png"))
             plt.show()
