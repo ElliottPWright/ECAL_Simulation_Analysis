@@ -4,6 +4,8 @@ Welcome aboard, Mainz SHiP sailors, to the simulation analysis deck. Here you ca
 
 You can find information on condor job flavours here: [Condor Job Flavour](https://batchdocs.web.cern.ch/local/submit.html)
 
+To find the analysis class structure, you can either look at 'SHiP ECAL Analysis Architecture.png' or open the following link to the [Canva Whiteboard](https://canva.link/mj1xznaxvwb41jp).
+
 # Current Tasks
 
 - Set up a elegant data framework for the sim data:

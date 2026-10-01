@@ -1,6 +1,5 @@
 import os
 import sys
-sys.path.append(r"C:\root_v6.40.04\bin")
 import uproot
 import scienceplots
 import matplotlib.pyplot as plt
@@ -458,6 +457,7 @@ class MIP_Calibration(SimFileReader):
         # Creating and saving the relevant plots
 
         canvas = ROOT.TCanvas("c_" + name, name, 900, 700)
+        canvas.SetLogx(1)
 
         hist.GetXaxis().SetTitle("Energy deposited per strip [MeV]")
         hist.GetYaxis().SetTitle("Entries")
@@ -471,11 +471,11 @@ class MIP_Calibration(SimFileReader):
 
             return (p[3] * self.langaus_value(x[0], p[0], p[1], p[2]) * bin_width)
 
+
         fit_func = ROOT.TF1("fit_" + name, root_model, xmin, xmax, 4)
-
         fit_func.SetParameters(mpv, landau_sigma, gauss_sigma, m.values["amplitude"])
-
         fit_func.SetLineColor(ROOT.kRed)
+        fit_func.SetNpx(1000)
         fit_func.Draw("same")
 
         canvas.SaveAs(os.path.join(self.plotting_directory, rf"{name}.png"))
@@ -498,7 +498,8 @@ class MIP_Calibration(SimFileReader):
 
 
 class ECAL_Resolution(MIP_Calibration):
-
+    """Determines the ECAL fractional resolution from sample electron data"""
+    
     def __init__(self, input_directory: str, plotting_directory: str):
         """
         Initial method to collect the sum of energy deposits 
@@ -509,15 +510,22 @@ class ECAL_Resolution(MIP_Calibration):
         self.edep_sum_array = []
 
         for file in os.listdir(input_directory):
-            Sim = SimFileReader(os.path.join(input_directory, file))
-            self.branches = ["edep"]
-            self.edeps = Sim.get_branches(self.branches)
+            name, ext = os.path.splitext(file)
+            #print(file)
+            if ext == '.root':
+            
+                Sim = SimFileReader(os.path.join(input_directory, file))
+                self.branches = ["edep", "type"]
+                self.edeps, self.types = Sim.get_branches(self.branches)
+                #print(self.edeps)
+                self.edep_sum = [np.sum(self.edeps[i]) for i in range(len(self.edeps))]
+                self.edep_sum_array.append(self.edep_sum)
 
-            self.edep_sum = [np.sum(self.edeps[i]) for i in range(len(self.edeps))]
-            self.edep_sum_array.append(self.edep_sum)
+            else:
+                continue
 
         self.edep_sum_array = np.array(self.edep_sum_array)
-
+        #print(self.edep_sum_array)
 
     def gaussian_fit(self, data: list, beam_energy: list):
         """
@@ -820,5 +828,5 @@ class ECAL_Resolution(MIP_Calibration):
             plt.ylabel(r"$\frac{\sigma_E}{E}$")
             plt.legend([legend_text], loc="best", prop={"family": "serif", "size": 11})
             #plt.yscale("log")
-            plt.savefig(os.path.join(plotting_directory, "SplitCalGap_first_layer_energy.png"))
+            plt.savefig(os.path.join(plotting_directory, "SplitCalGap_energy_resolution.png"))
             plt.show()
