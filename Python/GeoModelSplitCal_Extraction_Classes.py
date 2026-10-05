@@ -525,7 +525,7 @@ class ECAL_Resolution(MIP_Calibration):
                 continue
 
         self.edep_sum_array = np.array(self.edep_sum_array)
-        #print(self.edep_sum_array)
+        print(self.edep_sum_array)
 
     def gaussian_fit(self, data: list, beam_energy: list):
         """
