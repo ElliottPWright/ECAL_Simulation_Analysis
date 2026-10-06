@@ -254,7 +254,7 @@ class MIP_Calibration(SimFileReader):
         self.types = ak.flatten(self.types)
 
         self.edep_wide = self.edeps[(self.types == 1) | (self.types == 2)]
-        self.edep_thin = self.edeps[(self.types == 2) | (self.types == 3)]
+        self.edep_thin = self.edeps[(self.types == 3) | (self.types == 4)]
 
 
     def langaus_value(self, x, mpv, landau_sigma, gauss_sigma):
@@ -514,29 +514,12 @@ class MIP_Calibration(SimFileReader):
 class ECAL_Resolution(MIP_Calibration):
     """Determines the ECAL fractional resolution from sample electron data"""
     
-    def __init__(self, input_directory: str, plotting_directory: str):
+    def __init__(self, input_directory: str, plotting_directory: str, calibration: list):
         """
         Initial method to collect the sum of energy deposits 
         across the events in a directory of simulation files.
         """
         self.plotting_directory = plotting_directory
-        
-        self.edep_sum_array = []
-
-        # for file in os.listdir(input_directory):
-        #     name, ext = os.path.splitext(file)
-        #     #print(file)
-        #     if ext == '.root':
-            
-        #         Sim = SimFileReader(os.path.join(input_directory, file))
-        #         self.branches = ["edep", "type"]
-        #         self.edeps, self.types = Sim.get_branches(self.branches)
-        #         #print(self.edeps)
-        #         self.edep_sum = [np.sum(self.edeps[i]) for i in range(len(self.edeps))]
-        #         self.edep_sum_array.append(self.edep_sum)
-
-        #     else:
-        #         continue
         
         files = glob.glob(os.path.join(input_directory, "*.root"))
 
@@ -546,17 +529,23 @@ class ECAL_Resolution(MIP_Calibration):
 
         files.sort(key=energy_key)
 
+        self.edep_sum_array = []
+
         for file in files:
-            print(file)
             Sim = SimFileReader(file)
             self.branches = ["edep", "type"]
             self.edeps, self.types = Sim.get_branches(self.branches)
-            #print(self.edeps)
-            self.edep_sum = [np.sum(self.edeps[i]) for i in range(len(self.edeps))]
+
+            self.edep_wide = self.edeps[(self.types == 1) | (self.types == 2)]
+            self.edep_thin = self.edeps[(self.types == 3) | (self.types == 4)]
+
+            self.edeps_MIP = [np.concatenate([thin / calibration[0], wide / calibration[1]]) for thin, wide in zip(self.edep_thin, self.edep_wide)]
+
+
+            self.edep_sum = [np.sum(self.edeps_MIP[i]) for i in range(len(self.edeps_MIP))]
             self.edep_sum_array.append(self.edep_sum)
 
         self.edep_sum_array = np.array(self.edep_sum_array)
-        print(self.edep_sum_array)
 
     def gaussian_fit(self, data: list, beam_energy: list):
         """
