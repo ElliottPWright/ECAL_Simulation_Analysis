@@ -10,6 +10,8 @@ Welcome aboard, Mainz SHiP sailors, to the simulation analysis deck. Here you ca
   - basic visualisation function
   - automatic overview of simulation e.g. diagnostic plots
 
+//# Running Simulations
+
 # Useful Miscellaneous
 
 You can find information on condor job flavours here: [Condor Job Flavour](https://batchdocs.web.cern.ch/local/submit.html).

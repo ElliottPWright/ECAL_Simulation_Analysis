@@ -15,6 +15,8 @@ from scipy.signal import fftconvolve
 from scipy.interpolate import interp1d
 import ROOT
 import glob
+import csv
+import re
 
 
 class SimFileReader:
@@ -457,12 +459,15 @@ class MIP_Calibration(SimFileReader):
         # Creating and saving the relevant plots
 
         canvas = ROOT.TCanvas("c_" + name, name, 900, 700)
-        canvas.SetLogx(1)
 
         hist.GetXaxis().SetTitle("Energy deposited per strip [MeV]")
         hist.GetYaxis().SetTitle("Entries")
+        
+        # Change hist axis
 
+        hist.GetXaxis().SetRangeUser(np.min(data)+1, 50)
         hist.Draw()
+
 
         # ROOT function for visualisation only.
         # The minimisation itself was done by iminuit.
@@ -489,11 +494,20 @@ class MIP_Calibration(SimFileReader):
         and wide (6 cm) strip layers.
         """
         
-        mip_1cm, err_1cm = self.fit_mip(self.edep_thin, "MIP_1cm", np.min(self.edep_thin), np.max(self.edep_thin))
+        mip_1cm, err_1cm = self.fit_mip(self.edep_thin, "MIP_1cm", np.min(self.edep_thin)+1, np.max(self.edep_thin))
 
-        mip_6cm, err_6cm = self.fit_mip(self.edep_wide, "MIP_6cm", np.min(self.edep_wide), np.max(self.edep_wide))
+        mip_6cm, err_6cm = self.fit_mip(self.edep_wide, "MIP_6cm", np.min(self.edep_wide)+1, np.max(self.edep_wide))
 
-        return np.array([[mip_1cm, err_1cm], [mip_6cm, err_6cm]])
+        output = np.array([[mip_1cm, err_1cm], [mip_6cm, err_6cm]])
+
+        # Now save the values to a CSV
+
+        with open(os.path.join(self.plotting_directory, 'MIP_Calibration.csv'), 'w', newline='') as file:
+            writer = csv.writer(file, delimiter=',')
+            writer.writerow(output[0])
+            writer.writerow(output[1])
+
+        return output
 
 
 
@@ -509,20 +523,37 @@ class ECAL_Resolution(MIP_Calibration):
         
         self.edep_sum_array = []
 
-        for file in os.listdir(input_directory):
-            name, ext = os.path.splitext(file)
-            #print(file)
-            if ext == '.root':
+        # for file in os.listdir(input_directory):
+        #     name, ext = os.path.splitext(file)
+        #     #print(file)
+        #     if ext == '.root':
             
-                Sim = SimFileReader(os.path.join(input_directory, file))
-                self.branches = ["edep", "type"]
-                self.edeps, self.types = Sim.get_branches(self.branches)
-                #print(self.edeps)
-                self.edep_sum = [np.sum(self.edeps[i]) for i in range(len(self.edeps))]
-                self.edep_sum_array.append(self.edep_sum)
+        #         Sim = SimFileReader(os.path.join(input_directory, file))
+        #         self.branches = ["edep", "type"]
+        #         self.edeps, self.types = Sim.get_branches(self.branches)
+        #         #print(self.edeps)
+        #         self.edep_sum = [np.sum(self.edeps[i]) for i in range(len(self.edeps))]
+        #         self.edep_sum_array.append(self.edep_sum)
 
-            else:
-                continue
+        #     else:
+        #         continue
+        
+        files = glob.glob(os.path.join(input_directory, "*.root"))
+
+        def energy_key(name):
+            m = re.search(r"(\d+(?:\.\d+)?)MeV", name)
+            return float(m.group(1)) if m else float("inf")
+
+        files.sort(key=energy_key)
+
+        for file in files:
+            print(file)
+            Sim = SimFileReader(file)
+            self.branches = ["edep", "type"]
+            self.edeps, self.types = Sim.get_branches(self.branches)
+            #print(self.edeps)
+            self.edep_sum = [np.sum(self.edeps[i]) for i in range(len(self.edeps))]
+            self.edep_sum_array.append(self.edep_sum)
 
         self.edep_sum_array = np.array(self.edep_sum_array)
         print(self.edep_sum_array)
@@ -773,6 +804,12 @@ class ECAL_Resolution(MIP_Calibration):
 
         output = np.array(output)
 
+        with open(os.path.join(self.plotting_directory, 'ECAL_Resolution.csv'), 'w', newline='') as file:
+                    writer = csv.writer(file, delimiter=',')
+                    for i in range(len(output)):
+                        writer.writerow(output[i])
+        
+
         def fractional_energy_resolution_fit(E, a, c):
             return np.sqrt(a**2/E + c**2)
 
@@ -814,10 +851,11 @@ class ECAL_Resolution(MIP_Calibration):
         fitted_frac_resolutions = fractional_energy_resolution_fit(fitted_energies, a, c)
         frac_error = resolution_fit_error(beam_energy, a, c, pcov)
 
+
         legend_text = (
             r"$\frac{\sigma_E}{E} = \sqrt{\frac{a^2}{E} + c^2}$" "\n"
-            rf"$a = {a:.2f} \pm {unc_params[0]:.2f} \ [\sqrt{{\text{{GeV}}}}]$" + "\n"
-            rf"$c = ({10**3*c:.2f} \pm {10**3*unc_params[1]:.2f})\times 10^{{-3}}$" "\n"
+            rf"$a = ({np.abs(a)/np.sqrt(1000)*100:.2f} \pm {unc_params[0]/np.sqrt(1000)*100:.2f}) \%$" + "\n"
+            rf"$c = ({c*100:.2f} \pm {unc_params[1]*100:.2f}) \%$" "\n"
         )
 
         with plt.style.context(['science', 'no-latex']):
@@ -827,6 +865,5 @@ class ECAL_Resolution(MIP_Calibration):
             plt.xlabel("E [GeV]")
             plt.ylabel(r"$\frac{\sigma_E}{E}$")
             plt.legend([legend_text], loc="best", prop={"family": "serif", "size": 11})
-            #plt.yscale("log")
             plt.savefig(os.path.join(plotting_directory, "SplitCalGap_energy_resolution.png"))
             plt.show()
