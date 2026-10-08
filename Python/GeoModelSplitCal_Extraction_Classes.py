@@ -311,7 +311,7 @@ class MIP_Calibration(SimFileReader):
 
         # Start by creating the histogram 
 
-        nbins = 100
+        nbins = 10*int(xmax)
         hist_min = 0.0
         hist_max = xmax
 
@@ -465,7 +465,7 @@ class MIP_Calibration(SimFileReader):
         
         # Change hist axis
 
-        hist.GetXaxis().SetRangeUser(np.min(data)+1, 50)
+        hist.GetXaxis().SetRangeUser(0, 30)
         hist.Draw()
 
 
@@ -504,6 +504,7 @@ class MIP_Calibration(SimFileReader):
 
         with open(os.path.join(self.plotting_directory, 'MIP_Calibration.csv'), 'w', newline='') as file:
             writer = csv.writer(file, delimiter=',')
+            writer.writerow(["MIP", "Error"])
             writer.writerow(output[0])
             writer.writerow(output[1])
 
@@ -682,7 +683,7 @@ class ECAL_Resolution(MIP_Calibration):
 
         hist = ROOT.TH1D(
             f"h_{beam_energy}",
-            f"{beam_energy} GeV electron response;Energy [MIP];Events",
+            f"{beam_energy} MeV electron response;Energy [MIP];Events",
             nbins,
             xmin,
             xmax
@@ -693,7 +694,7 @@ class ECAL_Resolution(MIP_Calibration):
 
         canvas = ROOT.TCanvas(
             f"c_{beam_energy}",
-            f"{beam_energy} GeV",
+            f"{beam_energy} MeV",
             900,
             700
         )
@@ -718,12 +719,12 @@ class ECAL_Resolution(MIP_Calibration):
 
         canvas.SaveAs(os.path.join(
                 self.plotting_directory,
-                f"electron_response_{beam_energy}GeV.png"
+                f"electron_response_{beam_energy}MeV.png"
             )
         )
 
         return {
-            "energy_GeV": beam_energy,
+            "energy_MeV": beam_energy,
             "mean_MIP": fitted_mean,
             "mean_error_MIP": mean_error,
             "sigma_MIP": fitted_sigma,
@@ -758,7 +759,7 @@ class ECAL_Resolution(MIP_Calibration):
         results = np.array(results)
 
         dtype = [
-            ("energy_GeV", "f8"),
+            ("energy_MeV", "f8"),
             ("mean_MIP", "f8"),
             ("mean_error_MIP", "f8"),
             ("sigma_MIP", "f8"),
@@ -774,7 +775,7 @@ class ECAL_Resolution(MIP_Calibration):
         output = np.array(
             [
                 (
-                    r["energy_GeV"],
+                    r["energy_MeV"],
                     r["mean_MIP"],
                     r["mean_error_MIP"],
                     r["sigma_MIP"],
@@ -793,8 +794,11 @@ class ECAL_Resolution(MIP_Calibration):
 
         output = np.array(output)
 
+        columns = np.array(["energy_MeV", "mean_MIP", "mean_error_MIP", "resolution", "resolution_percent", "chi2", "ndof", "fit_valid", "entries"])
+
         with open(os.path.join(self.plotting_directory, 'ECAL_Resolution.csv'), 'w', newline='') as file:
                     writer = csv.writer(file, delimiter=',')
+                    writer.writerow(columns)
                     for i in range(len(output)):
                         writer.writerow(output[i])
         
@@ -851,8 +855,9 @@ class ECAL_Resolution(MIP_Calibration):
             plt.rcParams['figure.dpi'] = 200
             plt.errorbar(beam_energy/10**3,frac_resolutions, yerr=frac_error, fmt='.', color='red', ecolor='black')
             plt.plot(fitted_energies/10**3, fitted_frac_resolutions, color='blue')
-            plt.xlabel("E [GeV]")
+            plt.xlabel("E [MeV]")
             plt.ylabel(r"$\frac{\sigma_E}{E}$")
             plt.legend([legend_text], loc="best", prop={"family": "serif", "size": 11})
+            plt.ylim([0, np.max(1.1*fitted_frac_resolutions)])
             plt.savefig(os.path.join(plotting_directory, "SplitCalGap_energy_resolution.png"))
             plt.show()
