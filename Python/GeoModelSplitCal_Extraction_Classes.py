@@ -253,11 +253,16 @@ class MIP_Calibration(SimFileReader):
         self.edeps = ak.flatten(self.edeps)
         self.types = ak.flatten(self.types)
 
+        # Collecting the thin and wide strip energy depositions
+
         self.edep_wide = self.edeps[(self.types == 1) | (self.types == 2)]
         self.edep_thin = self.edeps[(self.types == 3) | (self.types == 4)]
+        
+        
+        print("Please wait, this program takes around 10 minutes")
+        print("to run its fits and output the plots")
 
-
-    def langaus_value(self, x, mpv, landau_sigma, gauss_sigma):
+    def langaus_value(self, x: list, mpv: float, landau_sigma: float, gauss_sigma: float):
         """
         This method performs the Landau-Gaussian convolution.
 
@@ -267,7 +272,7 @@ class MIP_Calibration(SimFileReader):
             landau_sigma, gauss_sigma (float): the distribution standard deviations.
         
         Returns:
-            value: total * step.
+            value: total * step. This represents one Langaus convolution value.
         """
 
         if landau_sigma <= 0 or gauss_sigma <= 0:
@@ -295,7 +300,7 @@ class MIP_Calibration(SimFileReader):
 
 
 
-    def fit_mip(self, data, name, xmin, xmax):
+    def fit_mip(self, data: list, name: str, xmin: float, xmax: float):
         """
         This method sets up the MIP calibration.
 
@@ -360,7 +365,7 @@ class MIP_Calibration(SimFileReader):
         print(f"Fit range    = {xmin:.2f} - {xmax:.2f} MeV")
 
 
-        def expected_counts(mpv, landau_sigma, gauss_sigma, amplitude):
+        def expected_counts(mpv: list, landau_sigma: float, gauss_sigma: float, amplitude: float):
             """
             Here we find the expected counts based on the langaus model
             
@@ -390,7 +395,7 @@ class MIP_Calibration(SimFileReader):
             return np.asarray(values)
 
 
-        def nll(mpv, landau_sigma, gauss_sigma, amplitude):
+        def nll(mpv: list, landau_sigma: float, gauss_sigma: float, amplitude: float):
             """
             Extended Poisson negative log-likelihood.
 
@@ -621,7 +626,7 @@ class ECAL_Resolution(MIP_Calibration):
         amplitude0 = np.max(counts)
 
 
-        def chi2(amplitude, mean, sigma):
+        def chi2(amplitude: float, mean: float, sigma: float):
             """
             Method to determine the chi-squared of a 
             fit.
@@ -692,36 +697,18 @@ class ECAL_Resolution(MIP_Calibration):
         for value in fit_data:
             hist.Fill(float(value))
 
-        canvas = ROOT.TCanvas(
-            f"c_{beam_energy}",
-            f"{beam_energy} MeV",
-            900,
-            700
-        )
+        canvas = ROOT.TCanvas(f"c_{beam_energy}", f"{beam_energy} MeV", 900, 700)
 
         hist.Draw("HIST")
 
-        fit_function = ROOT.TF1(
-            f"fit_{beam_energy}",
-            "[0]*exp(-0.5*((x-[1])/[2])^2)",
-            xmin,
-            xmax
-        )
+        fit_function = ROOT.TF1(f"fit_{beam_energy}", "[0]*exp(-0.5*((x-[1])/[2])^2)", xmin, xmax)
 
-        fit_function.SetParameters(
-            m.values["amplitude"],
-            fitted_mean,
-            fitted_sigma
-        )
+        fit_function.SetParameters(m.values["amplitude"], fitted_mean, fitted_sigma)
 
         fit_function.SetLineWidth(2)
         fit_function.Draw("SAME")
 
-        canvas.SaveAs(os.path.join(
-                self.plotting_directory,
-                f"electron_response_{beam_energy}MeV.png"
-            )
-        )
+        canvas.SaveAs(os.path.join(self.plotting_directory, f"electron_response_{beam_energy}MeV.png"))
 
         return {
             "energy_MeV": beam_energy,
@@ -738,7 +725,7 @@ class ECAL_Resolution(MIP_Calibration):
             }
 
     
-    def perform_fit(self, beam_energy, plotting_directory):
+    def perform_fit(self, beam_energy: list, plotting_directory: str):
         """
         Performs the energy resolution fit.
 
@@ -806,7 +793,7 @@ class ECAL_Resolution(MIP_Calibration):
         def fractional_energy_resolution_fit(E, a, c):
             return np.sqrt(a**2/E + c**2)
 
-        def resolution_fit_error(E, a, c, cov_matrix):
+        def resolution_fit_error(E: list, a: float, c: float, cov_matrix: tuple):
             """
             Calculate propagated errors for risetime derived from radii.
 
