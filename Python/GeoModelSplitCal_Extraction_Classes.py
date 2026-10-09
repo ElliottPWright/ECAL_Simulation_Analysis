@@ -24,12 +24,12 @@ class SimFileReader:
     This class opens and reads a GeoModelSplitCal simulation ROOT file.
     """
 
-    def __init__(self, file_path: str):
+    def __init__(self, input_file: str):
         """
         Here we open a simulation file.
         """
 
-        self.file = uproot.open(file_path)
+        self.file = uproot.open(input_file)
 
     def list_trees(self):
        """
@@ -50,7 +50,7 @@ class SimFileReader:
 
         return data 
 
-    def Diagnostic_Plotting(self, file_path: str, plotting_directory: str):
+    def Diagnostic_Plotting(self, input_file: str, plotting_directory: str):
             """
             This method is for users to test if their simulations ran correctly.
             Currently, we plot: the full energy histogram; the first and last layer
@@ -58,12 +58,12 @@ class SimFileReader:
             hit distribution; and the energy-based acceptance.
             """
 
-            print(f"Beginning diagnostics on: {file_path}")
+            print(f"Beginning diagnostics on: {input_file}")
             print(".............................................")
 
             # First of all, need to extract the relevant branches
 
-            Sim = SimFileReader(os.path.join(file_path))
+            Sim = SimFileReader(os.path.join(input_file))
             branches = ["edep", "x_global", "y_global", "z_global", "layer"]
             edeps, x_globals, y_globals, z_globals, layers = Sim.get_branches(branches)
 
