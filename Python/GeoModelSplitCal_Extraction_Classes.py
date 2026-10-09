@@ -253,11 +253,16 @@ class MIP_Calibration(SimFileReader):
         self.edeps = ak.flatten(self.edeps)
         self.types = ak.flatten(self.types)
 
+        # Collecting the thin and wide strip energy depositions
+
         self.edep_wide = self.edeps[(self.types == 1) | (self.types == 2)]
         self.edep_thin = self.edeps[(self.types == 3) | (self.types == 4)]
+        
+        
+        print("Please wait, this program takes around 10 minutes")
+        print("to run its fits and output the plots")
 
-
-    def langaus_value(self, x, mpv, landau_sigma, gauss_sigma):
+    def langaus_value(self, x: list, mpv: float, landau_sigma: float, gauss_sigma: float):
         """
         This method performs the Landau-Gaussian convolution.
 
@@ -267,7 +272,7 @@ class MIP_Calibration(SimFileReader):
             landau_sigma, gauss_sigma (float): the distribution standard deviations.
         
         Returns:
-            value: total * step.
+            value: total * step. This represents one Langaus convolution value.
         """
 
         if landau_sigma <= 0 or gauss_sigma <= 0:
@@ -295,7 +300,7 @@ class MIP_Calibration(SimFileReader):
 
 
 
-    def fit_mip(self, data, name, xmin, xmax):
+    def fit_mip(self, data: list, name: str, xmin: float, xmax: float):
         """
         This method sets up the MIP calibration.
 
@@ -311,7 +316,7 @@ class MIP_Calibration(SimFileReader):
 
         # Start by creating the histogram 
 
-        nbins = 100
+        nbins = 10*int(xmax)
         hist_min = 0.0
         hist_max = xmax
 
@@ -360,7 +365,7 @@ class MIP_Calibration(SimFileReader):
         print(f"Fit range    = {xmin:.2f} - {xmax:.2f} MeV")
 
 
-        def expected_counts(mpv, landau_sigma, gauss_sigma, amplitude):
+        def expected_counts(mpv: list, landau_sigma: float, gauss_sigma: float, amplitude: float):
             """
             Here we find the expected counts based on the langaus model
             
@@ -390,7 +395,7 @@ class MIP_Calibration(SimFileReader):
             return np.asarray(values)
 
 
-        def nll(mpv, landau_sigma, gauss_sigma, amplitude):
+        def nll(mpv: list, landau_sigma: float, gauss_sigma: float, amplitude: float):
             """
             Extended Poisson negative log-likelihood.
 
@@ -465,7 +470,7 @@ class MIP_Calibration(SimFileReader):
         
         # Change hist axis
 
-        hist.GetXaxis().SetRangeUser(np.min(data)+1, 50)
+        hist.GetXaxis().SetRangeUser(0, 30)
         hist.Draw()
 
 
@@ -504,6 +509,7 @@ class MIP_Calibration(SimFileReader):
 
         with open(os.path.join(self.plotting_directory, 'MIP_Calibration.csv'), 'w', newline='') as file:
             writer = csv.writer(file, delimiter=',')
+            writer.writerow(["MIP", "Error"])
             writer.writerow(output[0])
             writer.writerow(output[1])
 
@@ -620,7 +626,7 @@ class ECAL_Resolution(MIP_Calibration):
         amplitude0 = np.max(counts)
 
 
-        def chi2(amplitude, mean, sigma):
+        def chi2(amplitude: float, mean: float, sigma: float):
             """
             Method to determine the chi-squared of a 
             fit.
@@ -682,7 +688,7 @@ class ECAL_Resolution(MIP_Calibration):
 
         hist = ROOT.TH1D(
             f"h_{beam_energy}",
-            f"{beam_energy} GeV electron response;Energy [MIP];Events",
+            f"{beam_energy} MeV electron response;Energy [MIP];Events",
             nbins,
             xmin,
             xmax
@@ -691,39 +697,21 @@ class ECAL_Resolution(MIP_Calibration):
         for value in fit_data:
             hist.Fill(float(value))
 
-        canvas = ROOT.TCanvas(
-            f"c_{beam_energy}",
-            f"{beam_energy} GeV",
-            900,
-            700
-        )
+        canvas = ROOT.TCanvas(f"c_{beam_energy}", f"{beam_energy} MeV", 900, 700)
 
         hist.Draw("HIST")
 
-        fit_function = ROOT.TF1(
-            f"fit_{beam_energy}",
-            "[0]*exp(-0.5*((x-[1])/[2])^2)",
-            xmin,
-            xmax
-        )
+        fit_function = ROOT.TF1(f"fit_{beam_energy}", "[0]*exp(-0.5*((x-[1])/[2])^2)", xmin, xmax)
 
-        fit_function.SetParameters(
-            m.values["amplitude"],
-            fitted_mean,
-            fitted_sigma
-        )
+        fit_function.SetParameters(m.values["amplitude"], fitted_mean, fitted_sigma)
 
         fit_function.SetLineWidth(2)
         fit_function.Draw("SAME")
 
-        canvas.SaveAs(os.path.join(
-                self.plotting_directory,
-                f"electron_response_{beam_energy}GeV.png"
-            )
-        )
+        canvas.SaveAs(os.path.join(self.plotting_directory, f"electron_response_{beam_energy}MeV.png"))
 
         return {
-            "energy_GeV": beam_energy,
+            "energy_MeV": beam_energy,
             "mean_MIP": fitted_mean,
             "mean_error_MIP": mean_error,
             "sigma_MIP": fitted_sigma,
@@ -737,7 +725,7 @@ class ECAL_Resolution(MIP_Calibration):
             }
 
     
-    def perform_fit(self, beam_energy, plotting_directory):
+    def perform_fit(self, beam_energy: list, plotting_directory: str):
         """
         Performs the energy resolution fit.
 
@@ -758,7 +746,7 @@ class ECAL_Resolution(MIP_Calibration):
         results = np.array(results)
 
         dtype = [
-            ("energy_GeV", "f8"),
+            ("energy_MeV", "f8"),
             ("mean_MIP", "f8"),
             ("mean_error_MIP", "f8"),
             ("sigma_MIP", "f8"),
@@ -774,7 +762,7 @@ class ECAL_Resolution(MIP_Calibration):
         output = np.array(
             [
                 (
-                    r["energy_GeV"],
+                    r["energy_MeV"],
                     r["mean_MIP"],
                     r["mean_error_MIP"],
                     r["sigma_MIP"],
@@ -793,8 +781,11 @@ class ECAL_Resolution(MIP_Calibration):
 
         output = np.array(output)
 
+        columns = np.array(["energy_MeV", "mean_MIP", "mean_error_MIP", "resolution", "resolution_percent", "chi2", "ndof", "fit_valid", "entries"])
+
         with open(os.path.join(self.plotting_directory, 'ECAL_Resolution.csv'), 'w', newline='') as file:
                     writer = csv.writer(file, delimiter=',')
+                    writer.writerow(columns)
                     for i in range(len(output)):
                         writer.writerow(output[i])
         
@@ -802,7 +793,7 @@ class ECAL_Resolution(MIP_Calibration):
         def fractional_energy_resolution_fit(E, a, c):
             return np.sqrt(a**2/E + c**2)
 
-        def resolution_fit_error(E, a, c, cov_matrix):
+        def resolution_fit_error(E: list, a: float, c: float, cov_matrix: tuple):
             """
             Calculate propagated errors for risetime derived from radii.
 
@@ -854,5 +845,6 @@ class ECAL_Resolution(MIP_Calibration):
             plt.xlabel("E [GeV]")
             plt.ylabel(r"$\frac{\sigma_E}{E}$")
             plt.legend([legend_text], loc="best", prop={"family": "serif", "size": 11})
+            plt.ylim([0, np.max(1.1*fitted_frac_resolutions)])
             plt.savefig(os.path.join(plotting_directory, "SplitCalGap_energy_resolution.png"))
             plt.show()
