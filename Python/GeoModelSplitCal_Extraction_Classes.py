@@ -257,9 +257,9 @@ class MIP_Calibration(SimFileReader):
 
         self.edep_wide = self.edeps[(self.types == 1) | (self.types == 2)]
         self.edep_thin = self.edeps[(self.types == 3) | (self.types == 4)]
-        
-        
-        print("Please wait, this program takes around 10 minutes")
+
+
+        print("Please wait, this program takes around 1 minute")
         print("to run its fits and output the plots")
 
     def langaus_value(self, x: list, mpv: float, landau_sigma: float, gauss_sigma: float):
@@ -464,7 +464,8 @@ class MIP_Calibration(SimFileReader):
         # Creating and saving the relevant plots
 
         canvas = ROOT.TCanvas("c_" + name, name, 900, 700)
-
+        canvas.SetLeftMargin(0.15) 
+        
         hist.GetXaxis().SetTitle("Energy deposited per strip [MeV]")
         hist.GetYaxis().SetTitle("Entries")
         
@@ -552,6 +553,9 @@ class ECAL_Resolution(MIP_Calibration):
             self.edep_sum_array.append(self.edep_sum)
 
         self.edep_sum_array = np.array(self.edep_sum_array)
+
+        print("Please wait, this program takes around 10 minutes")
+        print("to run its fits and output the plots")
 
     def gaussian_fit(self, data: list, beam_energy: list):
         """
