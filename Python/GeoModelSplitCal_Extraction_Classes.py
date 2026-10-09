@@ -842,7 +842,7 @@ class ECAL_Resolution(MIP_Calibration):
             plt.rcParams['figure.dpi'] = 200
             plt.errorbar(beam_energy/10**3,frac_resolutions, yerr=frac_error, fmt='.', color='red', ecolor='black')
             plt.plot(fitted_energies/10**3, fitted_frac_resolutions, color='blue')
-            plt.xlabel("E [MeV]")
+            plt.xlabel("E [GeV]")
             plt.ylabel(r"$\frac{\sigma_E}{E}$")
             plt.legend([legend_text], loc="best", prop={"family": "serif", "size": 11})
             plt.ylim([0, np.max(1.1*fitted_frac_resolutions)])
