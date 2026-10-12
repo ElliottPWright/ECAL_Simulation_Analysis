@@ -24,12 +24,12 @@ class SimFileReader:
     This class opens and reads a GeoModelSplitCal simulation ROOT file.
     """
 
-    def __init__(self, file_path: str):
+    def __init__(self, input_file: str):
         """
         Here we open a simulation file.
         """
 
-        self.file = uproot.open(file_path)
+        self.file = uproot.open(input_file)
 
     def list_trees(self):
        """
@@ -50,7 +50,7 @@ class SimFileReader:
 
         return data 
 
-    def Diagnostic_Plotting(self, file_path: str, plotting_directory: str):
+    def Diagnostic_Plotting(self, input_file: str, plotting_directory: str):
             """
             This method is for users to test if their simulations ran correctly.
             Currently, we plot: the full energy histogram; the first and last layer
@@ -58,12 +58,12 @@ class SimFileReader:
             hit distribution; and the energy-based acceptance.
             """
 
-            print(f"Beginning diagnostics on: {file_path}")
+            print(f"Beginning diagnostics on: {input_file}")
             print(".............................................")
 
             # First of all, need to extract the relevant branches
 
-            Sim = SimFileReader(os.path.join(file_path))
+            Sim = SimFileReader(os.path.join(input_file))
             branches = ["edep", "x_global", "y_global", "z_global", "layer"]
             edeps, x_globals, y_globals, z_globals, layers = Sim.get_branches(branches)
 
@@ -257,9 +257,9 @@ class MIP_Calibration(SimFileReader):
 
         self.edep_wide = self.edeps[(self.types == 1) | (self.types == 2)]
         self.edep_thin = self.edeps[(self.types == 3) | (self.types == 4)]
-        
-        
-        print("Please wait, this program takes around 10 minutes")
+
+
+        print("Please wait, this program takes around 1 minute")
         print("to run its fits and output the plots")
 
     def langaus_value(self, x: list, mpv: float, landau_sigma: float, gauss_sigma: float):
@@ -464,7 +464,8 @@ class MIP_Calibration(SimFileReader):
         # Creating and saving the relevant plots
 
         canvas = ROOT.TCanvas("c_" + name, name, 900, 700)
-
+        canvas.SetLeftMargin(0.15) 
+        
         hist.GetXaxis().SetTitle("Energy deposited per strip [MeV]")
         hist.GetYaxis().SetTitle("Entries")
         
@@ -552,6 +553,9 @@ class ECAL_Resolution(MIP_Calibration):
             self.edep_sum_array.append(self.edep_sum)
 
         self.edep_sum_array = np.array(self.edep_sum_array)
+
+        print("Please wait, this program takes around 10 minutes")
+        print("to run its fits and output the plots")
 
     def gaussian_fit(self, data: list, beam_energy: list):
         """
