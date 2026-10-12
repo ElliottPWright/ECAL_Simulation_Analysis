@@ -1,18 +1,10 @@
 import os
-import sys
 import uproot
-import scienceplots
 import matplotlib.pyplot as plt
 import awkward as ak
 import numpy as np
-from pathlib import Path
-from typing import Dict, List, Optional
-from scipy.signal import find_peaks
 from scipy.optimize import curve_fit
 from iminuit import Minuit
-from scipy.special import erf
-from scipy.signal import fftconvolve
-from scipy.interpolate import interp1d
 import ROOT
 import glob
 import csv
