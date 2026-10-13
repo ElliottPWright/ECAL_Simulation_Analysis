@@ -9,6 +9,7 @@ import ROOT
 import glob
 import csv
 import re
+import scienceplots
 
 
 class SimFileReader:
