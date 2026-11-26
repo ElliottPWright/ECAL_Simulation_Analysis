@@ -390,6 +390,9 @@ class ECAL_Resolution(MIP_Calibration):
 
         self.edep_sum_array = np.array(self.edep_sum_array)
 
+        print("Please wait, this program takes around 10 minutes")
+        print("to run its fits and output the plots")
+
     def gaussian_fit(self, data: list, beam_energy: list):
         """
         Method to do a guassian fit with iminuit
