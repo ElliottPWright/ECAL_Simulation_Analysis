@@ -8,10 +8,10 @@ import sys
 import numpy as np
 import csv
 from iminuit import Minuit
+from scipy.optimize import curve_fit
 import re
 import glob
-
-directory = r"/afs/cern.ch/user/e/elwright/SHiP_Work/outputs"
+# import matplotlib.pyplot as plt
 
 _alive = []
 
@@ -87,7 +87,9 @@ class MIP_Calibration(SimFileReader):
                     self.edep = h.energy_deposit
                     self.edeps.append(self.edep)
 
-    def languas_value(self, x: list, mpv: float, landau_sigma: float, gauss_sigma: float):
+        self.edeps = 1000*np.array(self.edeps) # Conversion from GeV -> MeV
+
+    def langaus_value(self, x: list, mpv: float, landau_sigma: float, gauss_sigma: float):
         """
         This method performs the Landau-Gaussian convolution.
         
@@ -140,6 +142,7 @@ class MIP_Calibration(SimFileReader):
         # Start by creating the histogram 
 
         nbins = 10*int(xmax)
+
         hist_min = 0.0
         hist_max = xmax
 
@@ -158,7 +161,6 @@ class MIP_Calibration(SimFileReader):
         for i in range(1, nbins + 1):
 
             x = hist.GetBinCenter(i)
-
             if x < xmin or x > xmax:
                 continue
 
@@ -172,7 +174,6 @@ class MIP_Calibration(SimFileReader):
 
         x_values = np.asarray(x_values)
         counts = np.asarray(counts)
-
 
         # Finding the initial peak (mpv) based on the histogram
 
@@ -316,12 +317,12 @@ class MIP_Calibration(SimFileReader):
 
         return mpv, mpv_error
 
-    def perform_fit(self):
+    def perform_fit(self, fit_min=1, fit_max=30):
         """
         Method to execute a MIP calibration on the strip layers.
         """
-        
-        mip, err = self.fit_mip(self.edeps, "MIP", np.min(self.edeps)+1, np.max(self.edeps))
+
+        mip, err = self.fit_mip(self.edeps, "MIP", fit_min, fit_max)
         
         output = np.array([mip, err])
         
@@ -330,54 +331,10 @@ class MIP_Calibration(SimFileReader):
         with open(os.path.join(self.plotting_directory, 'MIP_Calibration.csv'), 'w', newline='') as file:
             writer = csv.writer(file, delimiter=',')
             writer.writerow(["MIP", "Error"])
-            writer.writerow(output[0])
-            #writer.writerow(output[1])
-        
+            writer.writerow(output)
+
         return output
 
-    
-    # ## Looking at the energy deposited in the ECAL
-
-    # counts, edges = np.histogram(edeps, bins=100)
-    # h = ROOT.TH1D("h_edep", "", len(counts), edges)
-    # for j, c in enumerate(counts, start=1):
-    # h.SetBinContent(j, c)
-
-    # canvas = ROOT.TCanvas("c_edep_fit", "edep_fit", 900, 700)
-    # canvas.SetLeftMargin(0.15)
-
-    # h.GetXaxis().SetTitle("Energy deposited per strip [GeV]")
-    # h.GetYaxis().SetTitle("Entries")
-
-    # # Change hist axis
-
-    # h.GetXaxis().SetRangeUser(0, 30)
-    # h.Draw()
-
-    # canvas.SaveAs("MIP_Calibration.png")
-
-    # ## Looking at the z-pos of the hits
-
-    # z_positions = np.asarray(z_positions).flatten()
-
-
-    # counts, edges = np.histogram(z_positions, bins=100)
-    # h = ROOT.TH1D("h_edep", "", len(counts), edges)
-    # for j, c in enumerate(counts, start=1):
-    # h.SetBinContent(j, c)
-
-    # canvas = ROOT.TCanvas("c_z_positions", "z_positions", 900, 700)
-    # canvas.SetLeftMargin(0.15)
-
-    # h.GetXaxis().SetTitle("z hit position [mm]")
-    # h.GetYaxis().SetTitle("Entries")
-
-    # # Change hist axis
-
-    # h.Draw()
-
-    # canvas.SaveAs("z_positions.png")
-            
 
 class ECAL_Resolution(MIP_Calibration):
     """Determines the ECAL fractional resolution from sample electron data"""
@@ -407,20 +364,30 @@ class ECAL_Resolution(MIP_Calibration):
             
             self.z_positions = []
             self.edeps = []
+
+            event_sums = []
             
             for i in Sim.entries():
                 self.hits = Sim["sim_hits"](i)
-                print(self.hits)
+                
+                event_edeps = []
+                
                 for h in self.hits:
                     self.z_position = h.position[2]
-                    self.z_positions.append(self.z_position)
+                    self.z_positions.append(np.array(self.z_position))
             
                     if self.z_position < 500:
                         self.edep = h.energy_deposit
                         self.edeps.append(self.edep)
-                        self.edeps_MIP = [energy/calibration[0] for energy in self.edeps]
-                        self.edep_sum = [np.sum(self.edeps_MIP[i]) for i in range(len(self.edeps_MIP))]
-        
+                        event_edeps.append(self.edep)
+                
+                
+                edeps_MIP = [energy/calibration for energy in event_edeps]
+                event_sums.append(np.sum(edeps_MIP))
+                self.edep_sum_array.append(self.edep_sum)
+
+            self.edep_sum_array.append(event_sums)
+
         self.edep_sum_array = np.array(self.edep_sum_array)
 
     def gaussian_fit(self, data: list, beam_energy: list):
@@ -558,7 +525,7 @@ class ECAL_Resolution(MIP_Calibration):
 
         hist = ROOT.TH1D(
             f"h_{beam_energy}",
-            f"{beam_energy} MeV electron response;Energy [MIP];Events",
+            f"{beam_energy} GeV electron response;Energy [MIP];Events",
             nbins,
             xmin,
             xmax
@@ -567,7 +534,7 @@ class ECAL_Resolution(MIP_Calibration):
         for value in fit_data:
             hist.Fill(float(value))
 
-        canvas = ROOT.TCanvas(f"c_{beam_energy}", f"{beam_energy} MeV", 900, 700)
+        canvas = ROOT.TCanvas(f"c_{beam_energy}", f"{beam_energy} GeV", 900, 700)
 
         hist.Draw("HIST")
 
@@ -578,7 +545,7 @@ class ECAL_Resolution(MIP_Calibration):
         fit_function.SetLineWidth(2)
         fit_function.Draw("SAME")
 
-        canvas.SaveAs(os.path.join(self.plotting_directory, f"electron_response_{beam_energy}MeV.png"))
+        canvas.SaveAs(os.path.join(self.plotting_directory, f"electron_response_{beam_energy}GeV.png"))
 
         return {
             "energy_MeV": beam_energy,
@@ -708,15 +675,30 @@ class ECAL_Resolution(MIP_Calibration):
             rf"$c = ({c*100:.2f} \pm {unc_params[1]*100:.2f}) \%$" "\n"
         )
 
-        with plt.style.context(['science', 'no-latex']):
-            plt.rcParams['figure.dpi'] = 200
-            plt.errorbar(beam_energy/10**3,frac_resolutions, yerr=frac_error, fmt='.', color='red', ecolor='black')
-            plt.plot(fitted_energies/10**3, fitted_frac_resolutions, color='blue')
-            plt.xlabel("E [GeV]")
-            plt.ylabel(r"$\frac{\sigma_E}{E}$")
-            plt.legend([legend_text], loc="best", prop={"family": "serif", "size": 11})
-            plt.ylim([0, np.max(1.1*fitted_frac_resolutions)])
-            plt.savefig(os.path.join(plotting_directory, "SplitCalGap_energy_resolution.png"))
-            plt.show()
+        ## Need to remove the plt stuff here and replace it with ROOT canvas
+        
+        name = "ECAL_resolution"
 
-## Need to remove the plt stuff here and replace it with ROOT canvas
+        canvas = ROOT.TCanvas("c_" + name, name, 900, 700)
+
+        graph = ROOT.TGraphErrors(len(beam_energy), beam_energy, frac_resolutions, 0*frac_error, frac_error)
+        graph.GetXaxis().SetTitle("E [GeV]")
+        graph.GetYaxis().SetTitle(r"$\frac{\sigma_E}{E}")
+        graph.SetMarkerStyle(20)
+        graph.SetMarkerColor(ROOT.kBlue)
+        graph.SetName("SplitCalGap_energy_resolution")
+        graph.Write()
+
+        canvas.SaveAs(os.path.join(plotting_directory, "SplitCalGap_energy_resolution.png"))
+
+        # with plt.style.context(['science', 'no-latex']):
+        #     plt.rcParams['figure.dpi'] = 200
+        #     plt.errorbar(beam_energy/10**3,frac_resolutions, yerr=frac_error, fmt='.', color='red', ecolor='black')
+        #     plt.plot(fitted_energies/10**3, fitted_frac_resolutions, color='blue')
+        #     plt.xlabel("E [GeV]")
+        #     plt.ylabel(r"$\frac{\sigma_E}{E}$")
+        #     plt.legend([legend_text], loc="best", prop={"family": "serif", "size": 11})
+        #     plt.ylim([0, np.max(1.1*fitted_frac_resolutions)])
+        #     plt.savefig(os.path.join(plotting_directory, "SplitCalGap_energy_resolution.png"))
+        #     plt.show()
+

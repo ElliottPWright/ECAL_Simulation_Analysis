@@ -524,7 +524,7 @@ class ECAL_Resolution(MIP_Calibration):
         files = glob.glob(os.path.join(input_directory, "*.root"))
 
         def energy_key(name):
-            m = re.search(r"(\d+(?:\.\d+)?)MeV", name)
+            m = re.search(r"(\d+(?:\.\d+)?)GeV", name)
             return float(m.group(1)) if m else float("inf")
 
         files.sort(key=energy_key)
